@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>救護義消服勤時數與代金管理系統</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <!-- SheetJS (xlsx) for Excel Export -->
+    <script src="xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+
+    <!-- Screen Navigation Header -->
+    <header class="no-print bg-red-700 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">救護義消服勤時數與代金管理系統</h1>
+                    <p class="text-xs text-red-100">嘉義縣消防局義勇消防總隊救護義消大隊水上分隊</p>
+                </div>
+            </div>
+            <nav class="flex space-x-1 md:space-x-2">
+                <button data-tab="tab-dashboard" class="nav-tab px-3 py-2 rounded-md text-sm font-medium border-b-2 border-red-500 text-red-600 bg-white shadow-sm md:px-4">儀表板</button>
+                <button data-tab="tab-members" class="nav-tab px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent text-gray-200 hover:text-white md:px-4">隊員名冊</button>
+                <button data-tab="tab-trainings" class="nav-tab px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent text-gray-200 hover:text-white md:px-4">訓練紀錄</button>
+                <button data-tab="tab-dispatches" class="nav-tab px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent text-gray-200 hover:text-white md:px-4">救護出勤</button>
+                <button data-tab="tab-reports" class="nav-tab px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent text-gray-200 hover:text-white md:px-4">月報表與列印</button>
+                <button data-tab="tab-settings" class="nav-tab px-3 py-2 rounded-md text-sm font-medium border-b-2 border-transparent text-gray-200 hover:text-white md:px-4">設定</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- TAB 1: DASHBOARD -->
+        <section id="tab-dashboard" class="tab-content active no-print space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Card 1 -->
+                <div class="bg-white rounded-lg p-5 shadow border-l-4 border-red-600 summary-card cursor-pointer hover:bg-red-50 transition-all duration-250" onclick="switchTab('tab-members')">
+                    <div class="text-sm font-medium text-gray-500 truncate">目前隊員總數</div>
+                    <div id="statTotalMembers" class="mt-1 text-3xl font-bold text-gray-900">0</div>
+                    <div class="text-xs text-gray-400 mt-2">水上分隊編制人員</div>
+                </div>
+                <!-- Card 2 -->
+                <div class="bg-white rounded-lg p-5 shadow border-l-4 border-blue-600 summary-card cursor-pointer hover:bg-blue-50 transition-all duration-250" onclick="switchTab('tab-trainings')">
+                    <div class="text-sm font-medium text-gray-500 truncate">已登錄訓練場次</div>
+                    <div id="statTotalTrainings" class="mt-1 text-3xl font-bold text-gray-900">0</div>
+                    <div class="text-xs text-gray-400 mt-2">定期與專案訓練統計</div>
+                </div>
+                <!-- Card 3 -->
+                <div class="bg-white rounded-lg p-5 shadow border-l-4 border-green-600 summary-card cursor-pointer hover:bg-green-50 transition-all duration-250" onclick="switchTab('tab-dispatches')">
+                    <div class="text-sm font-medium text-gray-500 truncate">已登錄救護出勤件數</div>
+                    <div id="statTotalDispatches" class="mt-1 text-3xl font-bold text-gray-900">0</div>
+                    <div class="text-xs text-gray-400 mt-2">救護車出勤津貼統計</div>
+                </div>
+                <!-- Card 4 -->
+                <div class="bg-white rounded-lg p-5 shadow border-l-4 border-yellow-500 summary-card cursor-pointer hover:bg-yellow-50 transition-all duration-250" onclick="switchTab('tab-members')">
+                    <div class="text-sm font-medium text-gray-500 truncate">EMT 證照效期警告</div>
+                    <div id="statEmtWarnings" class="mt-1 text-3xl font-bold text-yellow-600">0</div>
+                    <div class="text-xs text-gray-400 mt-2">證照在 90 天內到期或已過期</div>
+                </div>
+            </div>
+
+            <!-- MOHW System link Box -->
+            <div class="bg-white rounded-lg p-6 shadow-md border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="p-3 bg-red-50 text-red-600 rounded-full">
+                        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">衛生福利部緊急醫療管理系統</h3>
+                        <p class="text-sm text-gray-600">快速跳轉至衛福部官網，輸入身分證字號與生日查詢隊員最新的 EMT 受訓紀錄與有效期限。</p>
+                    </div>
+                </div>
+                <a href="https://ems.mohw.gov.tw/" target="_blank" class="w-full md:w-auto inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    前往效期查詢
+                    <svg class="ml-2 -mr-1 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </a>
+            </div>
+
+            <!-- Quick Instructions -->
+            <div class="bg-white rounded-lg p-6 shadow-md">
+                <h3 class="text-lg font-bold text-gray-900 border-b pb-2 mb-4">使用說明</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-600">
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">1. 隊員維護</h4>
+                        <p>名冊已預載分隊 31 名成員的預設資料。若有新進或異動，可至「隊員名冊」進行編輯，亦可記錄各別隊員的證照到期日以利預警。</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">2. 出勤與訓練登錄</h4>
+                        <p>平日值勤或定期訓練後，直接在對應頁面新增紀錄。可勾選參與的隊員，系統會自動在月報表中按月加總時數與應發代金。</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-800 mb-2">3. 列印與匯出</h4>
+                        <p>至「月報表與列印」分頁，可選擇對應的月份產出印領清冊。支援符合官方規格的「A4 排版預覽列印」以及「匯出至 Excel 檔案」。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: MEMBERS ROSTER -->
+        <section id="tab-members" class="tab-content no-print space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">隊員名冊管理</h2>
+                    <p class="text-xs text-gray-500 mt-1">管理分隊所有救護義消的職稱、姓名與 EMT 證照期限</p>
+                </div>
+                <div class="flex space-x-2 w-full sm:w-auto">
+                    <a href="https://ems.mohw.gov.tw/" target="_blank" class="flex-1 sm:flex-initial inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        衛福部效期查詢
+                    </a>
+                    <button id="openMemberFormBtn" class="flex-1 sm:flex-initial inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700">
+                        新增隊員
+                    </button>
+                </div>
+            </div>
+
+            <!-- Members Table Card -->
+            <div class="bg-white shadow overflow-hidden rounded-lg">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left whitespace-nowrap">
+                            <tr>
+                                <th class="px-6 py-3">職稱 / 姓名</th>
+                                <th class="px-6 py-3">EMT 級別 / 證照字號</th>
+                                <th class="px-6 py-3">證照有效期限</th>
+                                <th class="px-6 py-3">發照/訓練單位</th>
+                                <th class="px-6 py-3">入隊時間 / 年資</th>
+                                <th class="px-6 py-3 text-right">管理</th>
+                            </tr>
+                        </thead>
+                        <tbody id="membersTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: TRAINING LOGS -->
+        <section id="tab-trainings" class="tab-content no-print space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">定期訓練紀錄</h2>
+                    <p class="text-xs text-gray-500 mt-1">登記並查看分隊各期訓練的主題、地點與出席狀況</p>
+                </div>
+                <button id="openTrainingFormBtn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700">
+                    新增訓練紀錄
+                </button>
+            </div>
+
+            <!-- Trainings Table -->
+            <div class="bg-white shadow overflow-hidden rounded-lg">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">
+                            <tr>
+                                <th class="px-6 py-3">訓練日期</th>
+                                <th class="px-6 py-3">訓練時間</th>
+                                <th class="px-6 py-3">勤務項目</th>
+                                <th class="px-6 py-3">訓練地點</th>
+                                <th class="px-6 py-3 text-center">出席人數</th>
+                                <th class="px-6 py-3">出席隊員</th>
+                                <th class="px-6 py-3 text-right">管理</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trainingsListBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: AMBULANCE DISPATCH LOGS -->
+        <section id="tab-dispatches" class="tab-content no-print space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">救護車出勤與代金紀錄</h2>
+                    <p class="text-xs text-gray-500 mt-1">登錄每日救護出勤案號、時間與隨車協勤隊員名單</p>
+                </div>
+                <button id="openDispatchFormBtn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700">
+                    新增救護出勤
+                </button>
+            </div>
+
+            <!-- Dispatches Table -->
+            <div class="bg-white shadow overflow-hidden rounded-lg">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">
+                            <tr>
+                                <th class="px-6 py-3">出勤日期</th>
+                                <th class="px-6 py-3">出勤時間</th>
+                                <th class="px-6 py-3">派遣案號</th>
+                                <th class="px-6 py-3">出勤內容/病患狀況</th>
+                                <th class="px-6 py-3 text-center">出席人數</th>
+                                <th class="px-6 py-3">協勤人員</th>
+                                <th class="px-6 py-3 text-right">管理</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dispatchesListBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: REPORTS & PRINT GENERATOR -->
+        <section id="tab-reports" class="tab-content no-print space-y-4">
+            <div class="bg-white rounded-lg p-5 shadow border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase">報表類別</label>
+                        <select id="reportType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 text-sm">
+                            <option value="report1">報表一：定期訓練代金印領清冊 (併排)</option>
+                            <option value="report2">報表二：定期訓練代金轉發印領清冊</option>
+                            <option value="report3">報表三：救護出勤代金與出勤內容紀錄</option>
+                            <option value="report4">報表四：救護出勤津貼轉發印領清冊</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase">年度 (民國)</label>
+                        <select id="reportYear" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 text-sm">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase">月份</label>
+                        <select id="reportMonth" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 text-sm">
+                            <option value="1">1 月</option>
+                            <option value="2">2 月</option>
+                            <option value="3">3 月</option>
+                            <option value="4">4 月</option>
+                            <option value="5">5 月</option>
+                            <option value="6">6 月</option>
+                            <option value="7">7 月</option>
+                            <option value="8">8 月</option>
+                            <option value="9">9 月</option>
+                            <option value="10">10 月</option>
+                            <option value="11">11 月</option>
+                            <option value="12">12 月</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex space-x-2 w-full md:w-auto">
+                    <button onclick="exportToExcel()" class="flex-1 md:flex-initial inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 shadow-sm">
+                        匯出 Excel
+                    </button>
+                    <button onclick="printReport()" class="flex-1 md:flex-initial inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700">
+                        列印報表 (PDF)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Print Preview Title Banner (Screen Only) -->
+            <div class="bg-gray-200 px-4 py-2 rounded text-center text-xs font-bold text-gray-600">
+                報表預覽 (列印時將自動隱藏其他選單並以 A4 直向排版列印)
+            </div>
+
+            <!-- Report Rendering Output -->
+            <div id="reportPreviewContent" class="overflow-x-auto">
+                <!-- Dynamically generated reports render here -->
+            </div>
+        </section>
+
+        <!-- TAB 6: BACKUP & DATABASE SETTINGS -->
+        <section id="tab-settings" class="tab-content no-print space-y-6">
+            <div class="bg-white rounded-lg p-6 shadow-md">
+                <h3 class="text-lg font-bold text-gray-900 border-b pb-2 mb-4">系統備份與資料管理</h3>
+                <p class="text-sm text-gray-600 mb-6">
+                    本系統的資料完全儲存在您的個人電腦瀏覽器中（本機儲存）。為防範清除快取或電腦故障導致資料遺失，建議定期進行資料備份。
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Export Box -->
+                    <div class="border rounded-lg p-5 flex flex-col justify-between">
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-base mb-2">1. 匯出備份檔案</h4>
+                            <p class="text-sm text-gray-500 mb-4">
+                                將系統內所有的「隊員名冊」、「訓練紀錄」與「救護出勤紀錄」完整導出為一個備份檔 (.json) 下載至您的電腦中。
+                            </p>
+                        </div>
+                        <button onclick="exportDataBackup()" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                            下載備份檔案 (.json)
+                        </button>
+                    </div>
+
+                    <!-- Import Box -->
+                    <div class="border rounded-lg p-5 flex flex-col justify-between">
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-base mb-2">2. 匯入備份檔案</h4>
+                            <p class="text-sm text-gray-500 mb-4">
+                                載入之前備份的 .json 檔案以還原歷史資料。<span class="text-red-500 font-medium">注意：這將會覆蓋目前的全部資料！</span>
+                            </p>
+                        </div>
+                        <div>
+                            <input type="file" id="importFileInput" onchange="importDataBackup(event)" accept=".json" class="hidden">
+                            <button onclick="document.getElementById('importFileInput').click()" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                選擇檔案並還原
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL 1: ADD/EDIT MEMBER -->
+    <div id="memberFormContainer" class="no-print fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 id="memberFormTitle" class="text-lg font-bold text-gray-900 border-b pb-2 mb-4">新增隊員</h3>
+            <form id="memberForm" class="space-y-4">
+                <input type="hidden" id="memberId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">職稱</label>
+                    <select id="memberTitle" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border bg-white">
+                        <option value="分隊長">分隊長</option>
+                        <option value="副分隊長">副分隊長</option>
+                        <option value="幹事">幹事</option>
+                        <option value="助理幹事">助理幹事</option>
+                        <option value="小隊長">小隊長</option>
+                        <option value="隊員">隊員</option>
+                        <option value="顧問">顧問</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">姓名</label>
+                    <input type="text" id="memberName" required placeholder="例如：林碧雲" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">出生日期</label>
+                    <input type="date" id="memberBirthDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">EMT 級別</label>
+                    <select id="memberEmtLevel" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                        <option value="EMT-1">EMT-1</option>
+                        <option value="EMT-2">EMT-2</option>
+                        <option value="EMT-P">EMT-P</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">EMT 證照有效期限</label>
+                    <input type="date" id="memberEmtExpiry" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                    <p class="text-xs text-gray-400 mt-1">※ 請點擊衛福部查詢最新到期日填寫</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">EMT 證字號 / 證書號</label>
+                    <input type="text" id="memberCertNo" placeholder="選填，例如：T2112021" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">訓練/發照單位</label>
+                    <input type="text" id="memberOrg" placeholder="選填，例如：嘉義縣消防局" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">入隊時間</label>
+                    <input type="date" id="memberJoinDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                </div>
+                <div class="flex justify-end space-x-2 pt-4 border-t">
+                    <button type="button" id="closeMemberFormBtn" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700">
+                        儲存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ADD/EDIT TRAINING -->
+    <div id="trainingFormContainer" class="no-print fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+            <h3 id="trainingFormTitle" class="text-lg font-bold text-gray-900 border-b pb-2 mb-4">新增訓練紀錄</h3>
+            <form id="trainingForm" class="space-y-4">
+                <input type="hidden" id="trainingId">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">訓練日期</label>
+                        <input type="date" id="trainingDate" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">起訖時間</label>
+                        <div class="flex space-x-2 items-center">
+                            <input type="time" id="trainingStartTime" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                            <span>至</span>
+                            <input type="time" id="trainingEndTime" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">訓練地點</label>
+                        <input type="text" id="trainingLocation" required placeholder="預設：水上分隊" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">勤務項目</label>
+                        <input type="text" id="trainingDutyItem" required placeholder="定期訓練服勤代金" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">每次金額 (元)</label>
+                    <input type="number" id="trainingAmount" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">出席隊員 (可多選)</label>
+                    <div id="trainingAttendeesList" class="border rounded-md p-3 max-h-48 overflow-y-auto bg-gray-50 flex flex-wrap gap-1">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-4 border-t">
+                    <button type="button" id="closeTrainingFormBtn" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700">
+                        儲存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: ADD/EDIT DISPATCH -->
+    <div id="dispatchFormContainer" class="no-print fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+            <h3 id="dispatchFormTitle" class="text-lg font-bold text-gray-900 border-b pb-2 mb-4">新增救護出勤紀錄</h3>
+            <form id="dispatchForm" class="space-y-4">
+                <input type="hidden" id="dispatchId">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">出勤日期</label>
+                        <input type="date" id="dispatchDate" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">起訖時間</label>
+                        <div class="flex space-x-2 items-center">
+                            <input type="time" id="dispatchStartTime" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                            <span>至</span>
+                            <input type="time" id="dispatchEndTime" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">派遣案號 (選填)</label>
+                        <input type="text" id="dispatchCaseNo" placeholder="如：1150105001" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">每次代金金額 (元)</label>
+                        <input type="number" id="dispatchRate" required placeholder="預設：150" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">出勤內容/病患狀況簡述</label>
+                    <select id="dispatchDescription" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border bg-white">
+                        <option value="急病">急病</option>
+                        <option value="車禍">車禍</option>
+                        <option value="創傷">創傷</option>
+                        <option value="空跑">空跑</option>
+                        <option value="火警待命">火警待命</option>
+                        <option value="路倒">路倒</option>
+                        <option value="精神異常">精神異常</option>
+                        <option value="內科OHCA">內科OHCA</option>
+                        <option value="創傷OHCA">創傷OHCA</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">詳細狀況說明 <span class="text-xs text-gray-400 font-normal">(手動填寫/選填)</span></label>
+                    <input type="text" id="dispatchDetail" placeholder="例如：左腳擦傷、意識不清、送嘉基" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">協勤隊員 (可多選)</label>
+                    <div id="dispatchAttendeesList" class="border rounded-md p-3 max-h-48 overflow-y-auto bg-gray-50 flex flex-wrap gap-1">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-4 border-t">
+                    <button type="button" id="closeDispatchFormBtn" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700">
+                        儲存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Print-only View Container (Screen Hidden, visible in @media print) -->
+    <div class="print-only w-full report-container">
+        <!-- JS inserts print markup directly here during window.print() -->
+        <!-- Since print layout clones the DOM of #reportPreviewContent, it prints beautifully -->
+    </div>
+
+    <footer class="no-print bg-gray-800 text-gray-400 py-6 mt-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs">
+            <p>© 2026 救護義消時數代金管理系統. Designed for Chiayi County Fire Bureau EMS Shuisang Division.</p>
+        </div>
+    </footer>
+
+    <!-- Main JavaScript Logic -->
+    <script src="app.js"></script>
+    <script>
+        // Synchronize preview content to print-only container for printing
+        window.addEventListener('beforeprint', () => {
+            const previewBox = document.getElementById('report1PrintArea') || 
+                               document.getElementById('report2PrintArea') || 
+                               document.getElementById('report3PrintArea') || 
+                               document.getElementById('report4PrintArea');
+            if (previewBox) {
+                document.querySelector('.print-only').innerHTML = previewBox.innerHTML;
+            }
+        });
+    </script>
+</body>
+</html>
