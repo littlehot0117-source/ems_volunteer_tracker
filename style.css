@@ -199,3 +199,23 @@ body {
     outline: none;
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.5);
 }
+
+/* Sticky First Column (職稱/姓名) for Mobile horizontal scrolling */
+@media (max-width: 768px) {
+    .sticky-first-col th:first-child,
+    .sticky-first-col td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background-color: #ffffff !important; /* solid white to overlap hidden scrollable columns */
+        box-shadow: 2px 0 5px -1px rgba(0,0,0,0.15); /* subtle divider shadow */
+    }
+
+    .sticky-first-col th:first-child {
+        background-color: #f9fafb !important; /* header background to match bg-gray-50 */
+    }
+
+    .sticky-first-col tbody tr:hover td:first-child {
+        background-color: #f3f4f6 !important; /* row hover match */
+    }
+}
